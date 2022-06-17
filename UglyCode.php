@@ -91,8 +91,6 @@ class NewExerciseBeneficiaryProcess extends Job
 
     public function process()
     {
-        error_log("begin process()");
-
         $exercice = $this->getCurrentExercise();
         $lastYearExercice = $this->getPreviousExercise();
         $nextExercice = $exercice->getNextExercise();
@@ -121,19 +119,9 @@ class NewExerciseBeneficiaryProcess extends Job
             $beneficiaryModel = (new \LogiCE\Model\Beneficiary());
             $numberOfBeneficiaries = $beneficiaryModel->getTotalNumberOfBeneficiaries();
 
-            error_log("begin step by step beneficiaries listing");
-
-            error_log("total numberOfBeneficiaries : ");
-            error_log($numberOfBeneficiaries);
-
             $maxResults = 4000 ;
-            error_log("maxResults per select : ");
-            error_log($maxResults);
 
             for ($firstResult = 0; $firstResult < $numberOfBeneficiaries; $firstResult += $maxResults) {
-
-                error_log("firstResult : ");
-                error_log($firstResult);
 
                 $allBeneficiaries = $beneficiaryModel->listAllBeneficiary('*', true, array(), $firstResult, $maxResults);
 
@@ -148,24 +136,14 @@ class NewExerciseBeneficiaryProcess extends Job
                 $logDontCopy = array();
 
                 foreach ($allBeneficiaries as $beneficiary) {
-                    error_log("updating beneficiary : ".$beneficiary->getMatricule());
 
                     /** @var \LogiCE\Entity\Beneficiary $beneficiary */
                     $lastYearProcessus = $beneficiary->getLastProcessusGlobalTemplate($lastYearExercice);
                     $thisYearProcessus = $beneficiary->getLastProcessusSnapshotGlobalTemplate($exercice);
-                    /* // For CCGPF : treat the OD like the AD
-                    if ($beneficiary->isOd()) {
-                        error_log("beneficiary->isOd()");
-                        $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . $lastYearProcessus . '",' . $exercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
-                        $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . $lastYearProcessus . '",' . $nextExercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
-                        continue;
-                    }
-                    */
-                    /* // For CCGPF : If the beneficiary is already completed for the new year, we don't copy anything*/
+
                     if (
                         $thisYearProcessus == \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_RIGHTS_OPEN
                     ) {
-                        error_log("thisYearProcessus == \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_RIGHTS_OPEN");
                         $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . $thisYearProcessus . '",' . $exercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
                         $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . $thisYearProcessus . '",' . $nextExercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
                         $logDontCopy[] = $beneficiary->getMatricule();
@@ -174,7 +152,6 @@ class NewExerciseBeneficiaryProcess extends Job
                         if (
                         in_array($lastYearProcessus, \LogiCE\Beneficiary\ProcessList::TEMPLATES_SHOWED_YELLOW_FAMILYCOMPOSITION, true)
                         ) {
-                            error_log("lastYearProcessus in \LogiCE\Beneficiary\ProcessList::TEMPLATES_SHOWED_YELLOW_FAMILYCOMPOSITION");
                             $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . $lastYearProcessus . '",' . $exercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
                             $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . $lastYearProcessus . '",' . $nextExercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
                             $logRightCopy[] = $beneficiary->getMatricule();
@@ -183,15 +160,11 @@ class NewExerciseBeneficiaryProcess extends Job
                             //$beneficiary->getIdNature() != \Nature::BENEFICIARY &&
                         $allProofAreValidated
                         ) {
-                            error_log("beneficiary->getIdNature() != \Nature::BENEFICIARY &&
-                        allProofAreValidated");
                             if ($lastYearProcessus == \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_RIGHTS_OPEN) {
-                                error_log("lastYearProcessus == \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_RIGHTS_OPEN");
                                 $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . $lastYearProcessus . '",' . $exercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
                                 $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . $lastYearProcessus . '",' . $nextExercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
                                 $logRightCopy[] = $beneficiary->getMatricule();
                             } else {
-                                error_log("lastYearProcessus != \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_RIGHTS_OPEN");
                                 $this->processImpact($beneficiary, \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_RIGHTS_OPEN);
                                 $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_RIGHTS_OPEN . '",' . $nextExercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
                             }
@@ -200,20 +173,10 @@ class NewExerciseBeneficiaryProcess extends Job
                             $beneficiary->getIdNature() != \Nature::BENEFICIARY &&
                             !in_array($lastYearProcessus, \LogiCE\Beneficiary\ProcessList::TEMPLATES_SHOWED_YELLOW_FAMILYCOMPOSITION, true)
                         ) {
-                            error_log("beneficiary->getIdNature() != \Nature::BENEFICIARY &&
-                        lastYearProcessus not in \LogiCE\Beneficiary\ProcessList::TEMPLATES_SHOWED_YELLOW_FAMILYCOMPOSITION");
                             $this->processImpact($beneficiary, \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_RIGHTS_SUSPENDED);
                             $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_RIGHTS_SUSPENDED . '",' . $nextExercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
                             $logRightSuspended[] = $beneficiary->getMatricule();
                         } else {
-                            /* // For CCGPF : set the OD without all proofs validated to BENEFICIARY_TEMPLATE_WAIT_PROFILE */
-                            /*
-                            $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . $lastYearProcessus . '",' . $exercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
-                            $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . $lastYearProcessus . '",' . $nextExercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
-                            $logRightCopy[] = $beneficiary->getMatricule();
-                             */
-                            error_log("beneficiary->getIdNature() == \Nature::BENEFICIARY &&
-                        ! allProofAreValidated");
                             $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_WAIT_PROFILE . '",' . $exercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
                             $sqlInsertRow[] = ' (' . $beneficiary->getId() . ',"' . \LogiCE\Beneficiary\ProcessList::BENEFICIARY_TEMPLATE_WAIT_PROFILE . '",' . $nextExercice->getId() . ',\'' . date('Y-m-d H:i:s') . '\') ';
                             $logWaitProfile[] = $beneficiary->getMatricule();
@@ -255,12 +218,9 @@ class NewExerciseBeneficiaryProcess extends Job
             }
             \LogiCE\Helper\Db::getInstance()->get()->commit();
         } catch (\LogiCE\Cron\Exception $e) {
-            error_log("Exception in process()");
 
             \LogiCE\Helper\Db::getInstance()->get()->rollBack();
             throw new \LogiCE\Cron\Exception($e->getMessage());
         }
-        error_log("end process()");
-
     }
 }
