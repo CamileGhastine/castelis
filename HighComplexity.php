@@ -8,10 +8,10 @@ class Reduction
         $validDeclinations = array();
         $nbNights = 0;
         foreach ($declinations as $declination) {
-            $isAttributOk =  $declination->getDeclination()->getProduitAttributeValeurFromIdAttribut(\Attribut::KEY_STAY_PERIOD) ||
-                    $declination->getDeclination()->getProduitAttributeValeurFromIdAttribut(\Attribut::KEY_VISIT);
-                    
-            if ($isAttributOk) {
+            if (
+                    $declination->getDeclination()->getProduitAttributeValeurFromIdAttribut(\Attribut::KEY_STAY_PERIOD) ||
+                    $declination->getDeclination()->getProduitAttributeValeurFromIdAttribut(\Attribut::KEY_VISIT)
+            ) {
                 $nbNights += $declination->getDeclination()->getNbNightDeclination();
                 $validDeclinations[] = $declination;
                 if ($nbNights >= ($this->getBoughtNights() + $this->getFreeNights())) {
